@@ -1,0 +1,124 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #0f0f14;
+  color: #eee;
+}
+
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  height: 100vh;
+}
+
+.video-panel {
+  flex: 3;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 10px;
+}
+
+video {
+  width: 100%;
+  flex: 1;
+  background: #000;
+  border-radius: 8px;
+  min-height: 200px;
+}
+
+.controls-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.file-btn {
+  background: #4f46e5;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.file-btn input { display: none; }
+
+#connStatus {
+  font-size: 13px;
+  color: #aaa;
+}
+
+.room-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #1a1a22;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.join-row, #shareBox {
+  display: flex;
+  gap: 6px;
+}
+
+.hidden { display: none; }
+
+input[type="text"], #roomInput, #shareLink, #chatInput {
+  background: #0f0f14;
+  border: 1px solid #333;
+  color: #eee;
+  padding: 8px;
+  border-radius: 6px;
+  flex: 1;
+}
+
+button {
+  background: #333;
+  color: #eee;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button:hover { background: #444; }
+
+.chat-panel {
+  flex: 1;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #222;
+  padding: 12px;
+}
+
+#chatMessages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.msg {
+  background: #1e1e28;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  max-width: 90%;
+}
+.msg.me { align-self: flex-end; background: #4f46e5; }
+.msg.system { align-self: center; color: #888; font-size: 12px; background: none; }
+
+.chat-input-row {
+  display: flex;
+  gap: 6px;
+}
+
+@media (max-width: 700px) {
+  .container { flex-direction: column; height: auto; }
+  .chat-panel { border-left: none; border-top: 1px solid #222; height: 300px; }
+}
