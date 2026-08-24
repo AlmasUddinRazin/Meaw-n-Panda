@@ -15,38 +15,62 @@ const sendChatBtn = document.getElementById('sendChatBtn');
 
 let peer = null;
 let conn = null;
-let suppressSync = false; // prevents echo loops when a remote action triggers a local video event
+let suppressSync = false;
+let pendingRemote = null; // holds a sync command if the video isn't ready yet
 
-// ---------- Video file loading (local only, never uploaded) ----------
+// ---------- Video file loading (local only, never transmitted) ----------
 fileInput.addEventListener('change', () => {
   const file = fileInput.files[0];
   if (!file) return;
-  const url = URL.createObjectURL(file);
-  video.src = url;
+  video.src = URL.createObjectURL(file);
+  addSystemMessage('Loaded: ' + file.name);
 });
 
-// ---------- PeerJS connection setup ----------
+// Once metadata is ready, apply any sync command that arrived too early
+video.addEventListener('loadedmetadata', () => {
+  if (pendingRemote) {
+    applyRemote(pendingRemote);
+    pendingRemote = null;
+  }
+});
+
+// ---------- PeerJS setup ----------
 function initPeer(onOpenCallback) {
-  peer = new Peer(); // uses PeerJS's free public signaling server
-  peer.on('open', id => onOpenCallback(id));
-  peer.on('connection', c => {
-    conn = c;
-    setupConnection();
+  peer = new Peer(undefined, {
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
+      ]
+    }
   });
+  peer.on('open', id => onOpenCallback(id));
+  peer.on('connection', c => { conn = c; setupConnection(); });
   peer.on('error', err => {
-    connStatus.textContent = 'Connection error: ' + err.type;
+    connStatus.textContent = 'Peer error: ' + err.type;
+    addSystemMessage('⚠️ Peer error: ' + err.type);
   });
 }
 
 function setupConnection() {
   conn.on('open', () => {
     connStatus.textContent = 'Connected ✅';
-    addSystemMessage('Connected! You can now watch together.');
+    addSystemMessage('Connected! Try sending a chat message to double check, then press play.');
   });
-  conn.on('data', handleRemoteData);
+  conn.on('data', data => {
+    try {
+      handleRemoteData(data);
+    } catch (e) {
+      addSystemMessage('⚠️ Error handling remote data: ' + e.message);
+    }
+  });
   conn.on('close', () => {
     connStatus.textContent = 'Disconnected';
     addSystemMessage('The other person disconnected.');
+  });
+  conn.on('error', err => {
+    addSystemMessage('⚠️ Connection error: ' + err);
   });
 }
 
@@ -70,12 +94,11 @@ joinRoomBtn.addEventListener('click', () => {
   const roomId = roomInput.value.trim();
   if (!roomId) return;
   initPeer(() => {
-    conn = peer.connect(roomId);
+    conn = peer.connect(roomId, { reliable: true });
     setupConnection();
   });
 });
 
-// Auto-join if opened via a shared link (?room=xxxx)
 window.addEventListener('load', () => {
   const params = new URLSearchParams(location.search);
   const roomId = params.get('room');
@@ -85,37 +108,53 @@ window.addEventListener('load', () => {
   }
 });
 
-// ---------- Sync video actions ----------
+// ---------- Sync outgoing ----------
 function send(data) {
-  if (conn && conn.open) conn.send(data);
+  if (conn && conn.open) {
+    conn.send(data);
+  } else {
+    addSystemMessage('⚠️ Tried to sync but connection is not open.');
+  }
 }
 
 video.addEventListener('play', () => {
   if (suppressSync) return;
   send({ type: 'play', time: video.currentTime });
 });
-
 video.addEventListener('pause', () => {
   if (suppressSync) return;
   send({ type: 'pause', time: video.currentTime });
 });
-
 video.addEventListener('seeked', () => {
   if (suppressSync) return;
   send({ type: 'seek', time: video.currentTime });
 });
 
+// ---------- Sync incoming ----------
 function handleRemoteData(data) {
   if (data.type === 'chat') {
     addMessage(data.text, false);
     return;
   }
 
+  // If the video has no metadata yet, queue the command instead of dropping it
+  if (video.readyState < 1) {
+    pendingRemote = data;
+    addSystemMessage('Received a sync command before your video was ready — will apply once it loads.');
+    return;
+  }
+
+  applyRemote(data);
+}
+
+function applyRemote(data) {
   suppressSync = true;
 
   if (data.type === 'play') {
     if (Math.abs(video.currentTime - data.time) > 0.5) video.currentTime = data.time;
-    video.play();
+    video.play().catch(err => {
+      addSystemMessage('⚠️ Browser blocked auto-play: ' + err.message + ' — click play manually once, then it should sync fine after.');
+    });
   } else if (data.type === 'pause') {
     video.currentTime = data.time;
     video.pause();
@@ -123,7 +162,7 @@ function handleRemoteData(data) {
     video.currentTime = data.time;
   }
 
-  setTimeout(() => { suppressSync = false; }, 300);
+  setTimeout(() => { suppressSync = false; }, 400);
 }
 
 // ---------- Chat ----------
@@ -134,7 +173,6 @@ function addMessage(text, isMe) {
   chatMessages.appendChild(div);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
-
 function addSystemMessage(text) {
   const div = document.createElement('div');
   div.className = 'msg system';
@@ -142,7 +180,6 @@ function addSystemMessage(text) {
   chatMessages.appendChild(div);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
-
 function sendChat() {
   const text = chatInput.value.trim();
   if (!text) return;
@@ -150,8 +187,5 @@ function sendChat() {
   send({ type: 'chat', text });
   chatInput.value = '';
 }
-
 sendChatBtn.addEventListener('click', sendChat);
-chatInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') sendChat();
-});
+chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
