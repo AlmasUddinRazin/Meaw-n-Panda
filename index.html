@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watch Together</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="video-panel">
+    <video id="video" controls playsinline></video>
+
+    <div class="controls-row">
+      <label class="file-btn">
+        Choose Video
+        <input type="file" id="fileInput" accept="video/*">
+      </label>
+      <span id="connStatus">Not connected</span>
+    </div>
+
+    <div class="room-controls">
+      <button id="createRoomBtn">Create Room</button>
+      <div id="shareBox" class="hidden">
+        <p>Send this link to her:</p>
+        <input id="shareLink" readonly>
+        <button id="copyBtn">Copy</button>
+      </div>
+
+      <div class="join-row">
+        <input id="roomInput" placeholder="Paste room ID here">
+        <button id="joinRoomBtn">Join Room</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-panel">
+    <div id="chatMessages"></div>
+    <div class="chat-input-row">
+      <input id="chatInput" placeholder="Type a message..." autocomplete="off">
+      <button id="sendChatBtn">Send</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
