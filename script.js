@@ -16,9 +16,9 @@ const sendChatBtn = document.getElementById('sendChatBtn');
 let peer = null;
 let conn = null;
 let suppressSync = false;
-let pendingRemote = null; // holds a sync command if the video isn't ready yet
+let pendingRemote = null;
 
-// ---------- Video file loading (local only, never transmitted) ----------
+// ---------- Video file loading (stays on your device — never sent to her) ----------
 fileInput.addEventListener('change', () => {
   const file = fileInput.files[0];
   if (!file) return;
@@ -26,7 +26,6 @@ fileInput.addEventListener('change', () => {
   addSystemMessage('Loaded: ' + file.name);
 });
 
-// Once metadata is ready, apply any sync command that arrived too early
 video.addEventListener('loadedmetadata', () => {
   if (pendingRemote) {
     applyRemote(pendingRemote);
@@ -56,7 +55,7 @@ function initPeer(onOpenCallback) {
 function setupConnection() {
   conn.on('open', () => {
     connStatus.textContent = 'Connected ✅';
-    addSystemMessage('Connected! Try sending a chat message to double check, then press play.');
+    addSystemMessage('Connected! Load the same movie on both sides, then press play.');
   });
   conn.on('data', data => {
     try {
@@ -69,9 +68,7 @@ function setupConnection() {
     connStatus.textContent = 'Disconnected';
     addSystemMessage('The other person disconnected.');
   });
-  conn.on('error', err => {
-    addSystemMessage('⚠️ Connection error: ' + err);
-  });
+  conn.on('error', err => addSystemMessage('⚠️ Connection error: ' + err));
 }
 
 createRoomBtn.addEventListener('click', () => {
@@ -108,7 +105,7 @@ window.addEventListener('load', () => {
   }
 });
 
-// ---------- Sync outgoing ----------
+// ---------- Outgoing sync ----------
 function send(data) {
   if (conn && conn.open) {
     conn.send(data);
@@ -130,20 +127,17 @@ video.addEventListener('seeked', () => {
   send({ type: 'seek', time: video.currentTime });
 });
 
-// ---------- Sync incoming ----------
+// ---------- Incoming sync ----------
 function handleRemoteData(data) {
   if (data.type === 'chat') {
     addMessage(data.text, false);
     return;
   }
-
-  // If the video has no metadata yet, queue the command instead of dropping it
   if (video.readyState < 1) {
     pendingRemote = data;
-    addSystemMessage('Received a sync command before your video was ready — will apply once it loads.');
+    addSystemMessage('Sync received before your video loaded — will apply automatically once it does.');
     return;
   }
-
   applyRemote(data);
 }
 
@@ -153,7 +147,7 @@ function applyRemote(data) {
   if (data.type === 'play') {
     if (Math.abs(video.currentTime - data.time) > 0.5) video.currentTime = data.time;
     video.play().catch(err => {
-      addSystemMessage('⚠️ Browser blocked auto-play: ' + err.message + ' — click play manually once, then it should sync fine after.');
+      addSystemMessage('⚠️ Browser blocked auto-play — click play once manually, it will stay synced after that.');
     });
   } else if (data.type === 'pause') {
     video.currentTime = data.time;
