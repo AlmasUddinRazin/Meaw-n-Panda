@@ -15,19 +15,23 @@ const sendChatBtn = document.getElementById('sendChatBtn');
 
 let peer = null;
 let conn = null;
-let suppressSync = false;
 let pendingRemote = null;
 
-// ---------- Video file loading (stays on your device — never sent to her) ----------
+// event-based ignore flags — cleared only when the real event fires,
+// no matter how long buffering/seeking takes
+const ignore = { play: false, pause: false, seeked: false };
+
+// ---------- Video file loading (local only, never transmitted) ----------
 fileInput.addEventListener('change', () => {
   const file = fileInput.files[0];
   if (!file) return;
   video.src = URL.createObjectURL(file);
-  addSystemMessage('Loaded: ' + file.name);
+  addSystemMessage('Loaded locally: ' + file.name);
 });
 
 video.addEventListener('loadedmetadata', () => {
   if (pendingRemote) {
+    addSystemMessage('Video ready — applying the sync command that was waiting.');
     applyRemote(pendingRemote);
     pendingRemote = null;
   }
@@ -55,13 +59,13 @@ function initPeer(onOpenCallback) {
 function setupConnection() {
   conn.on('open', () => {
     connStatus.textContent = 'Connected ✅';
-    addSystemMessage('Connected! Load the same movie on both sides, then press play.');
+    addSystemMessage('Connected. Load the same movie on both sides, then press play.');
   });
   conn.on('data', data => {
     try {
       handleRemoteData(data);
     } catch (e) {
-      addSystemMessage('⚠️ Error handling remote data: ' + e.message);
+      addSystemMessage('⚠️ Error handling incoming data: ' + e.message);
     }
   });
   conn.on('close', () => {
@@ -109,21 +113,22 @@ window.addEventListener('load', () => {
 function send(data) {
   if (conn && conn.open) {
     conn.send(data);
+    addSystemMessage('→ Sent: ' + data.type + ' @ ' + (data.time !== undefined ? data.time.toFixed(1) + 's' : ''));
   } else {
     addSystemMessage('⚠️ Tried to sync but connection is not open.');
   }
 }
 
 video.addEventListener('play', () => {
-  if (suppressSync) return;
+  if (ignore.play) { ignore.play = false; return; }
   send({ type: 'play', time: video.currentTime });
 });
 video.addEventListener('pause', () => {
-  if (suppressSync) return;
+  if (ignore.pause) { ignore.pause = false; return; }
   send({ type: 'pause', time: video.currentTime });
 });
 video.addEventListener('seeked', () => {
-  if (suppressSync) return;
+  if (ignore.seeked) { ignore.seeked = false; return; }
   send({ type: 'seek', time: video.currentTime });
 });
 
@@ -133,30 +138,44 @@ function handleRemoteData(data) {
     addMessage(data.text, false);
     return;
   }
-  if (video.readyState < 1) {
+
+  addSystemMessage('← Received: ' + data.type + ' @ ' + (data.time !== undefined ? data.time.toFixed(1) + 's' : ''));
+
+  if (!video.src) {
+    addSystemMessage('⚠️ You haven\'t chosen a video file yet — pick the same file first.');
     pendingRemote = data;
-    addSystemMessage('Sync received before your video loaded — will apply automatically once it does.');
     return;
   }
+
+  if (video.readyState < 1) {
+    pendingRemote = data;
+    addSystemMessage('Your video isn\'t loaded yet — will apply once ready.');
+    return;
+  }
+
   applyRemote(data);
 }
 
 function applyRemote(data) {
-  suppressSync = true;
-
   if (data.type === 'play') {
-    if (Math.abs(video.currentTime - data.time) > 0.5) video.currentTime = data.time;
+    ignore.play = true;
+    if (Math.abs(video.currentTime - data.time) > 0.5) {
+      ignore.seeked = true;
+      video.currentTime = data.time;
+    }
     video.play().catch(err => {
-      addSystemMessage('⚠️ Browser blocked auto-play — click play once manually, it will stay synced after that.');
+      ignore.play = false;
+      addSystemMessage('⚠️ Browser blocked auto-play: ' + err.message + ' — click play once manually.');
     });
   } else if (data.type === 'pause') {
+    ignore.pause = true;
+    ignore.seeked = true;
     video.currentTime = data.time;
     video.pause();
   } else if (data.type === 'seek') {
+    ignore.seeked = true;
     video.currentTime = data.time;
   }
-
-  setTimeout(() => { suppressSync = false; }, 400);
 }
 
 // ---------- Chat ----------
