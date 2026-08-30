@@ -5,13 +5,14 @@
    ====================================================================== */
 
 const firebaseConfig = {
-  apiKey: "PASTE_YOUR_API_KEY",
-  authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://PASTE_YOUR_PROJECT-default-rtdb.firebaseio.com",
-  projectId: "PASTE_YOUR_PROJECT",
-  storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
-  messagingSenderId: "PASTE_YOUR_SENDER_ID",
-  appId: "PASTE_YOUR_APP_ID"
+  apiKey: "AIzaSyAetfsK_6Ii0hQsJ-phc04OZCiZpJjEVqk",
+  authDomain: "movie-night-with-meaw.firebaseapp.com",
+  databaseURL: "https://movie-night-with-meaw-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "movie-night-with-meaw",
+  storageBucket: "movie-night-with-meaw.firebasestorage.app",
+  messagingSenderId: "536586255185",
+  appId: "1:536586255185:web:b0654486eeb194c1163170",
+  measurementId: "G-W5KX2S8EZ8"
 };
 
 firebase.initializeApp(firebaseConfig);
