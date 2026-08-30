@@ -1,52 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Watch Together</title>
-<link rel="stylesheet" href="style.css">
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Marquee — watch together</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<div class="container">
+<!-- ===================== JOIN SCREEN ===================== -->
+<section id="join-screen" class="join-screen">
+  <div class="join-card">
+    <p class="kicker">a private screening for two</p>
+    <h1>Marquee</h1>
+    <p class="sub">Same room code, same movie, same moment — even from two different couches.</p>
 
-  <div class="video-panel">
-    <video id="video" controls playsinline></video>
+    <label class="field">
+      <span>Your name</span>
+      <input id="input-name" type="text" placeholder="e.g. Rafi" maxlength="24" />
+    </label>
 
-    <div class="controls-row">
-      <label class="file-btn">
-        Choose Video
-        <input type="file" id="fileInput" accept="video/*">
-      </label>
-      <span id="connStatus">Not connected</span>
+    <label class="field">
+      <span>Room code</span>
+      <input id="input-room" type="text" placeholder="e.g. our-friday-night" maxlength="40" />
+    </label>
+    <p class="hint">Make up any code — just use the exact same one on both devices.</p>
+
+    <button id="btn-join" class="btn-primary">Enter the room</button>
+    <p id="join-error" class="error"></p>
+  </div>
+</section>
+
+<!-- ===================== MAIN APP ===================== -->
+<section id="app-screen" class="app-screen hidden">
+
+  <header class="topbar">
+    <div class="room-id">
+      <span class="dot" id="conn-dot"></span>
+      <div>
+        <div class="room-label" id="room-label">room</div>
+        <div class="room-name" id="room-name-display">—</div>
+      </div>
     </div>
+    <div class="partner-status" id="partner-status">Waiting for your partner…</div>
+    <button id="btn-leave" class="btn-ghost">Leave</button>
+  </header>
 
-    <div class="room-controls">
-      <button id="createRoomBtn">Create Room</button>
-      <div id="shareBox" class="hidden">
-        <p>Send this link to her:</p>
-        <input id="shareLink" readonly>
-        <button id="copyBtn">Copy</button>
+  <main class="layout">
+
+    <!-- STAGE -->
+    <div class="stage">
+      <div class="video-wrap">
+        <video id="player" playsinline controls></video>
+
+        <div id="empty-stage" class="empty-stage">
+          <p class="empty-title">Load your copy of the movie</p>
+          <p class="empty-sub">Pick the exact same file your partner has. It plays straight from your device — nothing gets uploaded.</p>
+          <label class="btn-primary file-btn">
+            Choose file
+            <input id="input-file" type="file" accept="video/*,.mkv" hidden />
+          </label>
+        </div>
       </div>
 
-      <div class="join-row">
-        <input id="roomInput" placeholder="Paste room ID here">
-        <button id="joinRoomBtn">Join Room</button>
+      <div class="stage-footer">
+        <div class="filename" id="filename-display">No file loaded</div>
+        <div class="stage-actions">
+          <label class="btn-secondary file-btn">
+            Change file
+            <input id="input-file-2" type="file" accept="video/*,.mkv" hidden />
+          </label>
+          <button id="btn-resync" class="btn-secondary">Resync to partner</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="chat-panel">
-    <div id="chatMessages"></div>
-    <div class="chat-input-row">
-      <input id="chatInput" placeholder="Type a message..." autocomplete="off">
-      <button id="sendChatBtn">Send</button>
-    </div>
-  </div>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="chat-log" id="chat-log"></div>
+      <form id="chat-form" class="chat-form">
+        <input id="chat-input" type="text" placeholder="Say something…" autocomplete="off" maxlength="500" />
+        <button type="submit" class="btn-primary chat-send">Send</button>
+      </form>
+    </aside>
 
-</div>
+  </main>
+</section>
 
-<script src="script.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
